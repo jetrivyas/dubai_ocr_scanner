@@ -168,6 +168,7 @@ function showScannerScreen() {
         capturedImages = {}
         stableFrameCount = 0
         readyToScan = false
+        currentFacingMode = 'environment' // Reset to back camera
         showSelectionScreen()
     })
     
@@ -590,6 +591,15 @@ function updateUI(
     const BRIGHTNESS_THRESHOLD = 20
     const CLARITY_THRESHOLD = 15
 
+    // Don't show quality metrics if not ready to scan
+    if (!readyToScan) {
+        if (captureStatus) {
+            captureStatus.innerText = 'Click "Ready to Scan" to start'
+            captureStatus.style.backgroundColor = ''
+        }
+        return
+    }
+
     if (
         blur > BLUR_THRESHOLD &&
         brightness > BRIGHTNESS_THRESHOLD &&
@@ -602,7 +612,7 @@ function updateUI(
             captureStatus.style.backgroundColor = '#10b981'
         }
     } else {
-        if (captureStatus && !captureStatus.innerText.includes('captured') && !captureStatus.innerText.includes('Processing')) {
+        if (captureStatus && !captureStatus.innerText.includes('captured') && !captureStatus.innerText.includes('Processing') && !captureStatus.innerText.includes('Uploading')) {
             const issues = []
             if (blur <= BLUR_THRESHOLD) issues.push(`Blur ${blur}% (need >${BLUR_THRESHOLD})`)
             if (brightness <= BRIGHTNESS_THRESHOLD) issues.push(`Bright ${brightness}% (need >${BRIGHTNESS_THRESHOLD})`)
@@ -681,6 +691,7 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
             capturedImages.front = imageData
             captureComplete = true // Stop auto-capture AND quality checking
             waitingForBackConfirmation = true
+            readyToScan = false // Stop quality checking
             console.log('✅ Front side captured')
             
             if (captureStatus) {
@@ -701,6 +712,7 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
             // Second capture - back side
             capturedImages.back = imageData
             captureComplete = true // Stop auto-capture AND quality checking permanently
+            readyToScan = false // Stop quality checking
             console.log('✅ Back side captured, sending to API...')
             
             if (captureStatus) {
@@ -725,22 +737,17 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
                     console.error('❌ OCR Error:', error)
                     
                     if (captureStatus) {
-                        captureStatus.innerText = '❌ Processing failed'
+                        captureStatus.innerText = '❌ Processing failed - Click Back to retry'
                         captureStatus.style.backgroundColor = '#ef4444'
                     }
 
-                    setTimeout(() => {
-                        if (captureStatus) {
-                            captureStatus.innerText = 'Click Back to try again'
-                            captureStatus.style.backgroundColor = ''
-                        }
-                        isCapturing = false
-                    }, 3000)
+                    isCapturing = false
                 })
         }
     } else {
         // Passport - single image
         captureComplete = true // Stop auto-capture AND quality checking
+        readyToScan = false // Stop quality checking
         console.log('📸 Passport captured, sending to API...')
 
         if (captureStatus) {
@@ -764,17 +771,11 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
                 console.error('❌ OCR Error:', error)
                 
                 if (captureStatus) {
-                    captureStatus.innerText = '❌ Processing failed'
+                    captureStatus.innerText = '❌ Processing failed - Click Back to retry'
                     captureStatus.style.backgroundColor = '#ef4444'
                 }
 
-                setTimeout(() => {
-                    if (captureStatus) {
-                        captureStatus.innerText = 'Click Back to try again'
-                        captureStatus.style.backgroundColor = ''
-                    }
-                    isCapturing = false
-                }, 3000)
+                isCapturing = false
             })
     }
 }
