@@ -415,10 +415,9 @@ canvas {
 
     z-index: 20;
 
-    padding: 12px 20px;
+    padding: 12px 16px;
 
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 24px;
 
     color: white;
 
@@ -427,13 +426,20 @@ canvas {
     backdrop-filter: blur(10px);
 
     border: 2px solid rgba(255,255,255,0.2);
-    border-radius: 12px;
+    border-radius: 50%;
 
     cursor: pointer;
 
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 
     pointer-events: auto;
+
+    width: 50px;
+    height: 50px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .switch-camera-button:hover {
@@ -442,7 +448,48 @@ canvas {
 
     border-color: #00ff99;
 
-    transform: scale(1.05);
+    transform: rotate(180deg) scale(1.1);
+}
+
+.ready-scan-button {
+
+    position: absolute;
+
+    bottom: 40px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    z-index: 20;
+
+    padding: 18px 40px;
+
+    font-size: 18px;
+    font-weight: 600;
+
+    color: white;
+
+    background: linear-gradient(135deg, #00ff99, #00cc7a);
+
+    border: none;
+    border-radius: 50px;
+
+    cursor: pointer;
+
+    box-shadow: 0 8px 24px rgba(0,255,153,0.4);
+
+    transition: all 0.3s ease;
+
+    pointer-events: auto;
+
+    animation: pulse 2s infinite;
+}
+
+.ready-scan-button:hover {
+
+    transform: translateX(-50%) scale(1.05);
+
+    box-shadow: 0 12px 32px rgba(0,255,153,0.6);
 }
 
 .ready-back-button {

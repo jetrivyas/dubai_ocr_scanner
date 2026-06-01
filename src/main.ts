@@ -12,6 +12,7 @@ let currentDocumentType: 'passport' | 'id' | null = null
 let capturedImages: { front?: string; back?: string } = {}
 let captureComplete = false
 let waitingForBackConfirmation = false
+let readyToScan = false // New flag for ready to scan button
 
 // Initial selection screen
 function showSelectionScreen() {
@@ -44,6 +45,7 @@ function showSelectionScreen() {
         captureComplete = false
         waitingForBackConfirmation = false
         stableFrameCount = 0
+        readyToScan = false
         showScannerScreen()
     })
     
@@ -53,6 +55,7 @@ function showSelectionScreen() {
         captureComplete = false
         waitingForBackConfirmation = false
         stableFrameCount = 0
+        readyToScan = false
         showScannerScreen()
     })
 }
@@ -128,7 +131,14 @@ function showScannerScreen() {
                 id="switchCameraButton"
                 class="switch-camera-button"
             >
-                🔄 Switch Camera
+                🔄
+            </button>
+
+            <button
+                id="readyToScanButton"
+                class="ready-scan-button"
+            >
+                ✓ Ready to Scan
             </button>
 
             <button
@@ -143,7 +153,7 @@ function showScannerScreen() {
                 class="capture-status"
                 id="captureStatus"
             >
-                Ready to scan
+                Click "Ready to Scan" to start
             </div>
 
         </div>
@@ -157,6 +167,7 @@ function showScannerScreen() {
         waitingForBackConfirmation = false
         capturedImages = {}
         stableFrameCount = 0
+        readyToScan = false
         showSelectionScreen()
     })
     
@@ -164,26 +175,40 @@ function showScannerScreen() {
         switchCamera()
     })
     
+    document.getElementById('readyToScanButton')?.addEventListener('click', () => {
+        readyToScan = true
+        const button = document.getElementById('readyToScanButton') as HTMLButtonElement
+        if (button) button.style.display = 'none'
+        
+        const captureStatus = document.getElementById('captureStatus')
+        if (captureStatus) {
+            captureStatus.innerText = 'Position document in frame'
+            captureStatus.style.backgroundColor = ''
+        }
+        
+        console.log('✓ Ready to scan - quality checking started')
+    })
+    
     document.getElementById('readyForBackButton')?.addEventListener('click', () => {
         waitingForBackConfirmation = false
-        captureComplete = false // Reset to allow back side capture
-        stableFrameCount = 0 // Reset stability counter
+        captureComplete = false
+        stableFrameCount = 0
+        readyToScan = true // Enable scanning for back side
         const button = document.getElementById('readyForBackButton') as HTMLButtonElement
         if (button) button.style.display = 'none'
         
         const captureStatus = document.getElementById('captureStatus')
         if (captureStatus) {
-            captureStatus.innerText = 'Ready to scan back'
+            captureStatus.innerText = 'Position back side in frame'
             captureStatus.style.backgroundColor = ''
         }
         
-        // Update scanner text
         const scannerText = document.querySelector('.scanner-text')
         if (scannerText) {
             scannerText.textContent = 'Position ID BACK inside frame'
         }
         
-        console.log('✓ Ready for back side - auto-capture re-enabled')
+        console.log('✓ Ready for back side - quality checking started')
     })
 }
 
@@ -254,11 +279,52 @@ async function switchCamera() {
     
     console.log(`Switching to ${currentFacingMode} camera`)
     
-    // Stop current camera
-    stopCamera()
+    const video = document.getElementById('video') as HTMLVideoElement
+    if (!video) return
     
-    // Start with new camera
-    await startCamera()
+    try {
+        // Stop current stream
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop())
+        }
+        
+        // Get new stream with switched camera
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: { exact: currentFacingMode },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: false
+        })
+        
+        videoStream = stream
+        video.srcObject = stream
+        
+        console.log(`✓ Switched to ${currentFacingMode} camera`)
+        
+    } catch (err) {
+        console.error('Camera switch failed:', err)
+        // Fallback: try without exact constraint
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: currentFacingMode },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false
+            })
+            
+            videoStream = stream
+            video.srcObject = stream
+            
+            console.log(`✓ Switched to ${currentFacingMode} camera (fallback)`)
+        } catch (fallbackErr) {
+            console.error('Camera switch fallback failed:', fallbackErr)
+            alert('Could not switch camera')
+        }
+    }
 }
 
 function startOpenCVProcessing() {
@@ -413,14 +479,17 @@ function analyzeFrame() {
     // AUTO CAPTURE
     // =========================
 
+    // Don't capture if not ready to scan
+    if (!readyToScan) {
+        return
+    }
+
     // Don't capture if already complete or waiting for confirmation
     if (captureComplete) {
-        console.log('⏸️ Capture already complete, skipping')
         return
     }
     
     if (waitingForBackConfirmation) {
-        console.log('⏸️ Waiting for back confirmation, skipping')
         return
     }
 
