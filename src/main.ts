@@ -63,6 +63,9 @@ function showSelectionScreen() {
 function showScannerScreen() {
     const isId = currentDocumentType === 'id'
     
+    // Reset ready to scan flag when showing scanner
+    readyToScan = false
+    
     app.innerHTML = `
         <div class="scanner-root">
 
@@ -679,6 +682,24 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
     if (captureStatus) {
         captureStatus.innerText = '📤 Uploading image...'
         captureStatus.style.backgroundColor = '#3b82f6'
+    }
+
+    // Turn off camera and hide video after capture
+    stopCamera()
+    const video = document.getElementById('video') as HTMLVideoElement
+    if (video) {
+        video.style.display = 'none'
+    }
+    
+    // Hide stats panel and scanner frame
+    const statsPanel = document.querySelector('.stats-panel') as HTMLElement
+    if (statsPanel) {
+        statsPanel.style.display = 'none'
+    }
+    
+    const overlay = document.querySelector('.overlay') as HTMLElement
+    if (overlay) {
+        overlay.style.display = 'none'
     }
 
     // Save image to server
