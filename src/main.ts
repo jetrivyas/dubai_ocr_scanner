@@ -936,8 +936,8 @@ function saveImageToServer(imageData: string, docType: string) {
     const side = capturedImages.front && !capturedImages.back ? 'back' : 'front'
     const filename = `${docType}_${side}_${timestamp}.jpg`
     
-    // Send to local server to save file
-    fetch('http://localhost:3001/save-image', {
+    // Send to Render backend server to save file
+    fetch('https://dubai-ocr-scanner.onrender.com/save-image', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
