@@ -125,6 +125,13 @@ function showScannerScreen() {
             </button>
 
             <button
+                id="switchCameraButton"
+                class="switch-camera-button"
+            >
+                🔄 Switch Camera
+            </button>
+
+            <button
                 id="readyForBackButton"
                 class="ready-back-button"
                 style="display: none;"
@@ -153,6 +160,10 @@ function showScannerScreen() {
         showSelectionScreen()
     })
     
+    document.getElementById('switchCameraButton')?.addEventListener('click', () => {
+        switchCamera()
+    })
+    
     document.getElementById('readyForBackButton')?.addEventListener('click', () => {
         waitingForBackConfirmation = false
         captureComplete = false // Reset to allow back side capture
@@ -177,6 +188,7 @@ function showScannerScreen() {
 }
 
 let videoStream: MediaStream | null = null
+let currentFacingMode: 'environment' | 'user' = 'environment' // Default to back camera
 
 async function startCamera() {
 
@@ -191,7 +203,7 @@ async function startCamera() {
                 video: {
 
                     facingMode: {
-                        ideal: 'environment'
+                        ideal: currentFacingMode
                     },
 
                     width: {
@@ -215,7 +227,7 @@ async function startCamera() {
             video.play()
 
             console.log(
-                'Camera Started'
+                `Camera Started (${currentFacingMode})`
             )
 
             startOpenCVProcessing()
@@ -234,6 +246,19 @@ function stopCamera() {
         videoStream.getTracks().forEach(track => track.stop())
         videoStream = null
     }
+}
+
+async function switchCamera() {
+    // Toggle between front and back camera
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment'
+    
+    console.log(`Switching to ${currentFacingMode} camera`)
+    
+    // Stop current camera
+    stopCamera()
+    
+    // Start with new camera
+    await startCamera()
 }
 
 function startOpenCVProcessing() {
@@ -571,6 +596,12 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
     console.log(`📊 Image dimensions: ${croppedCanvas.width}x${croppedCanvas.height}`)
     console.log(`📦 Image size: ${(imageData.length / 1024).toFixed(2)} KB`)
 
+    // Show uploading status immediately
+    if (captureStatus) {
+        captureStatus.innerText = '📤 Uploading image...'
+        captureStatus.style.backgroundColor = '#3b82f6'
+    }
+
     // Save image to server
     saveImageToServer(imageData, currentDocumentType!)
 
@@ -579,12 +610,12 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
         if (!capturedImages.front) {
             // First capture - front side
             capturedImages.front = imageData
-            captureComplete = true // Stop auto-capture
+            captureComplete = true // Stop auto-capture AND quality checking
             waitingForBackConfirmation = true
             console.log('✅ Front side captured')
             
             if (captureStatus) {
-                captureStatus.innerText = '✅ Front captured! Click button when ready for back'
+                captureStatus.innerText = '✅ Front uploaded! Click button when ready for back'
                 captureStatus.style.backgroundColor = '#10b981'
             }
             
@@ -600,11 +631,11 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
         } else {
             // Second capture - back side
             capturedImages.back = imageData
-            captureComplete = true // Stop auto-capture permanently
+            captureComplete = true // Stop auto-capture AND quality checking permanently
             console.log('✅ Back side captured, sending to API...')
             
             if (captureStatus) {
-                captureStatus.innerText = '📤 Sending to API...'
+                captureStatus.innerText = '📤 Uploading back & processing...'
                 captureStatus.style.backgroundColor = '#3b82f6'
             }
             
@@ -640,8 +671,13 @@ function autoCapture(sourceCanvas: HTMLCanvasElement) {
         }
     } else {
         // Passport - single image
-        captureComplete = true // Stop auto-capture
+        captureComplete = true // Stop auto-capture AND quality checking
         console.log('📸 Passport captured, sending to API...')
+
+        if (captureStatus) {
+            captureStatus.innerText = '📤 Uploading & processing...'
+            captureStatus.style.backgroundColor = '#3b82f6'
+        }
 
         sendToOCRAPI(imageData, undefined, 'passport')
             .then(result => {

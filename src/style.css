@@ -406,6 +406,45 @@ canvas {
     transform: translateX(-4px);
 }
 
+.switch-camera-button {
+
+    position: absolute;
+
+    top: 20px;
+    right: 20px;
+
+    z-index: 20;
+
+    padding: 12px 20px;
+
+    font-size: 16px;
+    font-weight: 600;
+
+    color: white;
+
+    background: rgba(0,0,0,0.7);
+
+    backdrop-filter: blur(10px);
+
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    transition: all 0.3s ease;
+
+    pointer-events: auto;
+}
+
+.switch-camera-button:hover {
+
+    background: rgba(0,0,0,0.9);
+
+    border-color: #00ff99;
+
+    transform: scale(1.05);
+}
+
 .ready-back-button {
 
     position: absolute;
